@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,6 +40,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.google.android.material.navigation.NavigationView;
 
 import ru.meefik.linuxdeploy.EnvUtils;
+import ru.meefik.linuxdeploy.ExecService;
 import ru.meefik.linuxdeploy.Logger;
 import ru.meefik.linuxdeploy.PrefStore;
 import ru.meefik.linuxdeploy.R;
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements
         NavigationView.OnNavigationItemSelectedListener {
 
     private static final int REQUEST_WRITE_STORAGE = 112;
+    private static final int REQUEST_FOREGROUND_SERVICE = 113;
     private static TextView output;
     private static ScrollView scroll;
     private static WifiLock wifiLock;
@@ -454,8 +457,14 @@ public class MainActivity extends AppCompatActivity implements
         if (!hasPermission) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_STORAGE);
+        } else if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && ContextCompat.checkSelfPermission(this,
+                Manifest.permission.FOREGROUND_SERVICE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.FOREGROUND_SERVICE}, REQUEST_FOREGROUND_SERVICE);
         } else {
             new UpdateEnvTask(this).execute();
+            Log.i(ExecService.TAG, "isRooted: " + EnvUtils.isRooted());
         }
     }
 
@@ -464,9 +473,24 @@ public class MainActivity extends AppCompatActivity implements
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_WRITE_STORAGE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                new UpdateEnvTask(this).execute();
+                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                        && ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.FOREGROUND_SERVICE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.FOREGROUND_SERVICE}, REQUEST_FOREGROUND_SERVICE);
+                } else {
+                    new UpdateEnvTask(this).execute();
+                    Log.i(ExecService.TAG, "isRooted: " + EnvUtils.isRooted());
+                }
             } else {
                 Toast.makeText(this, getString(R.string.write_permissions_disallow), Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == REQUEST_FOREGROUND_SERVICE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                new UpdateEnvTask(this).execute();
+                Log.i(ExecService.TAG, "isRooted: " + EnvUtils.isRooted());
+            } else {
+                Toast.makeText(this, "前台服务权限未授予", Toast.LENGTH_LONG).show();
             }
         }
     }

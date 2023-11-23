@@ -3,6 +3,7 @@ package ru.meefik.linuxdeploy;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -75,6 +76,7 @@ public class EnvUtils {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            Log.e(ExecService.TAG, "extractDir " + rootAsset + " error: " + Log.getStackTraceString(e));
             return false;
         }
         return true;
@@ -125,7 +127,7 @@ public class EnvUtils {
      *
      * @return true if success
      */
-    private static boolean isRooted() {
+    public static boolean isRooted() {
         try {
             Process process = Runtime.getRuntime().exec("su");
             try (DataOutputStream stdin = new DataOutputStream(process.getOutputStream());
@@ -338,6 +340,7 @@ public class EnvUtils {
             bw.write(". \"${ENV_DIR}/cli.sh\"\n");
             return true;
         } catch (IOException e) {
+            Log.e(ExecService.TAG, "makeMainScript error: " + Log.getStackTraceString(e));
             return false;
         }
     }

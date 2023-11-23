@@ -383,7 +383,7 @@ public class PrefStore {
      * @param c context
      * @return true if enabled
      */
-    private static Boolean isNotification(Context c) {
+    public static Boolean isNotification(Context c) {
         return SETTINGS.get(c, "appicon").equals("true");
     }
 
